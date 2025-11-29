@@ -1,6 +1,6 @@
 # SCL Protocol
 
-A Python library for communicating with LyTech LED controllers via the SCL/SuperComm UDP protocol. This module provides complete protocol implementation including file operations, status queries, and automatic image conversion to XMP format.
+A Python library for communicating with LyTech LED controllers via the SCL2008/SuperComm UDP protocol. This module provides complete protocol implementation including file operations, status queries, and automatic image conversion to XMP format.
 
 ## Features
 
@@ -703,7 +703,7 @@ For detailed protocol information, refer to:
 
 ## Version History
 
-### 0.1.0 (2024-11-24)
+### 0.9.0 (2025-11-25)
 - Initial release
 - Complete SCL2008 and SuperComm protocol implementation
 - File upload/download with automatic image conversion
