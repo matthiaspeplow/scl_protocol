@@ -135,3 +135,4 @@ debug_download_*
 tests/download/
 tests/test/
 *.xmp
+Docs/

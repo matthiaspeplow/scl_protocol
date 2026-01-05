@@ -4,12 +4,15 @@ Implements high-level operations: status check, file listing, and file upload an
 Tested with SCL2008 only
 """
 
+import logging
 import socket
 import struct
 import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 from .image_converter import convert_to_xmp, needs_conversion
 from .protocol import (
@@ -241,15 +244,19 @@ class SCLController:
         if not self.socket:
             raise SCLControllerError("Not connected. Call connect() first.")
         
-        # Increment packet number
-        self.packet_num += 1
-        
-        # Build packet
+        # Build basic data packet once (doesn't include packet number)
         basic_data = build_basic_data_packet(command, param1, param2, param3)
-        packet = build_udp_packet(self.packet_num, basic_data, self.scl2008)
         
         max_retries = 3
         for attempt in range(max_retries):
+            # Increment packet number for this attempt
+            prev_packet_num = self.packet_num
+            self.packet_num += 1
+            logger.debug("Packet# %d -> %d (cmd=0x%08X, attempt %d/%d)", prev_packet_num, self.packet_num, command, attempt+1, max_retries)
+            
+            # Build packet with current packet number
+            packet = build_udp_packet(self.packet_num, basic_data, self.scl2008)
+            
             try:
                 # Send to controller
                 self.socket.sendto(packet, (self.ip_address, self.port))
@@ -281,20 +288,35 @@ class SCLController:
                 
                 # Restore original timeout
                 self.socket.settimeout(self.timeout)
-                
+        
                 if not found_correct_packet:
-                    # Resync packet counter and retry the command
-                    # The controller's counter is the authoritative source
-                    if last_resp_packet_num is not None and attempt < max_retries - 1:
-                        print(f"Warning: Packet counter out of sync. Resyncing from {self.packet_num} to {last_resp_packet_num} and retrying...")
-                        self.packet_num = last_resp_packet_num
-                        # Retry the command with resynced counter
-                        continue
-                    else:
-                        raise SCLControllerError(
-                            f"Packet number mismatch: sent {self.packet_num}, "
-                            f"received {last_resp_packet_num} (tried {max_recv_attempts} times)"
-                        )
+                    # Analyze the mismatch to determine appropriate action
+                    if last_resp_packet_num is not None:
+                        if last_resp_packet_num > self.packet_num:
+                            # Controller is AHEAD - we're behind, need to catch up
+                            if attempt < max_retries - 1:
+                                logger.warning("Packet counter out of sync. Sent %d, controller at %d. Resyncing...", self.packet_num, last_resp_packet_num)
+                                self._flush_socket_buffer()
+                                # Set to controller's value - 1 so next increment matches
+                                self.packet_num = last_resp_packet_num - 1
+                                logger.debug("Reset packet counter to %d (next will be %d)", self.packet_num, last_resp_packet_num)
+                                continue
+                        elif last_resp_packet_num < self.packet_num:
+                            # Received STALE response - controller hasn't responded yet
+                            # This is likely a stale packet from buffer, not a real issue
+                            # Just retry the same packet number without resyncing
+                            if attempt < max_retries - 1:
+                                logger.warning("Received stale response %d (expected %d). Retrying...", last_resp_packet_num, self.packet_num)
+                                self._flush_socket_buffer()
+                                # Decrement so next increment sends same number again
+                                self.packet_num -= 1
+                                continue
+                    
+                    # If we get here, we've exhausted retries
+                    raise SCLControllerError(
+                        f"Packet number mismatch for cmd 0x{command:08X}: sent {self.packet_num}, "
+                        f"received {last_resp_packet_num} (tried {max_recv_attempts} receives, attempt {attempt+1}/{max_retries})"
+                    )
                 
                 # Check for error response
                 if resp_param2 == ERROR_CODE:
@@ -494,21 +516,25 @@ class SCLController:
             # WORD NotUsed4[8] (16 bytes, skip)
             offset += 16
             
-            # RTC fields (all WORD)
-            rtc_second = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_minute = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_hour = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_day = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_month = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_week = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
-            rtc_year = struct.unpack('<H', param3[offset:offset+2])[0]
-            offset += 2
+            # RTC fields in CD format: 7 bytes  
+            # The order in the status response is: second, minute, hour, day, month, week, year
+            rtc_second = param3[offset]
+            offset += 1
+            rtc_minute = param3[offset]
+            offset += 1
+            rtc_hour = param3[offset]
+            offset += 1
+            rtc_day = param3[offset]
+            offset += 1
+            rtc_month = param3[offset]
+            offset += 1
+            rtc_week = param3[offset]
+            offset += 1
+            rtc_year = param3[offset]
+            offset += 1
+            
+            # Year is stored as offset from 2000 (0-99 for 2000-2099)
+            rtc_year += 2000
             
             status['rtc'] = {
                 'year': rtc_year,
@@ -778,7 +804,10 @@ class SCLController:
                 )
                 
                 # Pack filename
-                filename_bytes = pack_filename(remote_path, 32)
+                # IMPORTANT: Controller expects DOS-style backslash paths!
+                # Convert forward slashes to backslashes (e.g., P00/FILE.TXT -> P00\FILE.TXT)
+                remote_path_dos = remote_path.replace('/', '\\')
+                filename_bytes = pack_filename(remote_path_dos, 32)
                 
                 # Build param3: time(2) + date(2) + filename(32)
                 param3 = struct.pack('<HH', time_word, date_word) + filename_bytes
@@ -1144,6 +1173,33 @@ class SCLController:
         
         self.send_command(CMD_SETUP_POWER_MODE, mode, 0)
     
+    def set_brightness(self, brightness: int) -> None:
+        """
+        Set LED screen brightness.
+        
+        Args:
+            brightness: Brightness level (0-30, where 0=darkest, 30=brightest, 31=auto)
+        
+        Raises:
+            ValueError: If brightness is not in range 0-31
+            SCLControllerError: If command fails
+        """
+        from .constants import CMD_SET_BRIGHTNESS, BRIGHTNESS_MIN, BRIGHTNESS_MAX, BRIGHTNESS_AUTO
+        
+        if not (BRIGHTNESS_MIN <= brightness <= BRIGHTNESS_AUTO):
+            raise ValueError(
+                f"Invalid brightness: {brightness} (must be 0-30 for manual, 31 for auto)"
+            )
+        
+        # Pack brightness as a BYTE in param3
+        param3 = struct.pack('B', brightness)
+        
+        param1, param2, _ = self.send_command(CMD_SET_BRIGHTNESS, 1, 5, param3)
+        
+        # Check response: PA2=1 for success, 0xFFFFFFFF for failure
+        if param2 == ERROR_CODE:
+            raise SCLControllerError(f"Failed to set brightness to {brightness}")
+    
     def format_disk(self, driver: str) -> None:
         """
         Format a storage driver.
@@ -1234,7 +1290,7 @@ class SCLController:
         Set controller's calendar and clock.
         
         Args:
-            year: Year (1980-2099)
+            year: Year (2000-2099)
             month: Month (1-12)
             day: Day (1-31)
             hour: Hour (0-23), default 0
@@ -1243,14 +1299,31 @@ class SCLController:
         
         Raises:
             SCLControllerError: If setting fails
+            ValueError: If year is not in range 2000-2099
         """
         from .constants import CMD_SET_CALENDAR_CLOCK
+        import datetime
         
-        # Pack date/time in DOS format
-        time_word, date_word = pack_dos_datetime(year, month, day, hour, minute, second)
+        # Validate year range
+        if not (2000 <= year <= 2099):
+            raise ValueError(f"Year must be between 2000 and 2099, got {year}")
         
-        # Build param3: time(2) + date(2) + reserved(4)
-        param3 = struct.pack('<HHI', time_word, date_word, 0)
+        # Calculate weekday (0=Sunday, 6=Saturday)
+        # Python's weekday() returns 0=Monday, so we need to convert
+        dt = datetime.date(year, month, day)
+        weekday = (dt.weekday() + 1) % 7  # Convert Monday=0 to Sunday=0
+        
+        # Pack date/time in CD format: 7 bytes
+        # year (0x00-0x99 for 2000-2099), month (0x01-0x12), date (0x01-0x31),
+        # week (0x00-0x06, 0x00=Sunday), hour (0x00-0x23), minute (0x00-0x59), second (0x00-0x59)
+        param3 = struct.pack('BBBBBBB', 
+                            year - 2000,  # Year offset from 2000
+                            month,
+                            day,
+                            weekday,
+                            hour,
+                            minute,
+                            second)
         
         self.send_command(CMD_SET_CALENDAR_CLOCK, 0, len(param3), param3)
     

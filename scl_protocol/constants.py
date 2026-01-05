@@ -20,6 +20,7 @@ CMD_FORMAT_DISK = 0x00000007  # Format disk
 CMD_SET_CALENDAR_CLOCK = 0x00000009  # Check/set controller's calendar and clock
 CMD_PAUSE_PLAY = 0x0000000A  # Pause or continue play
 CMD_SET_ON_OFF_TIME = 0x0000000B  # Setup LED screen switching on/off time
+CMD_SET_BRIGHTNESS = 0x0000000B  # Setup LED screen's brightness (0-31, 31=auto)
 CMD_SETUP_POWER_MODE = 0x0000000C  # Setup LED screen's power mode
 CMD_CREATE_SUBDIRECTORY = 0x0000000D  # Create subdirectory
 CMD_DELETE_SUBDIRECTORY = 0x0000000E  # Delete subdirectory

@@ -71,6 +71,7 @@ SCLController(ip_address, port=5005, scl2008=True, timeout=5.0)
 ```
 
 **Parameters:**
+
 - `ip_address` (str): Controller IP address
 - `port` (int): UDP port number (default: 5005)
 - `scl2008` (bool): True for SCL2008 protocol, False for SuperComm (default: True)
@@ -79,15 +80,19 @@ SCLController(ip_address, port=5005, scl2008=True, timeout=5.0)
 #### Methods
 
 ##### `connect()`
+
 Initialize UDP socket for communication.
 
 ##### `close()`
+
 Close the UDP socket and release network resources.
 
 ##### `check_status() -> dict`
+
 Read controller running status information.
 
 **Returns:** Dictionary with detailed status information including:
+
 - `connected` (bool): Connection status
 - `total_programs` (int): Total program count
 - `current_program` (int): Currently playing program number
@@ -105,9 +110,11 @@ Read controller running status information.
 - `sw2_state` (int): State of SW2 port
 
 ##### `get_play_status() -> dict`
+
 Get current playlist playing status.
 
 **Returns:** Dictionary with play status:
+
 - `driver` (str): Driver where current PlayList.ly is ('A', 'B', or 'C')
 - `subdirectory` (int): Subdirectory where current PlayList.ly is
 - `playlist_item` (int): Current item in the PlayList.ly
@@ -117,22 +124,27 @@ Get current playlist playing status.
 - `area4_program` (int): Program displayed in area 4
 
 ##### `list_files(driver='A', subdirectory='') -> list`
+
 List files on controller disk.
 
 **Parameters:**
+
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 - `subdirectory` (str): Subdirectory name (max 3 chars, empty for root)
 
 **Returns:** List of dictionaries with file information:
+
 - `name` (str): Filename
 - `size` (int): File size in bytes
 - `is_dir` (bool): True if directory
 - `year`, `month`, `day`, `hour`, `minute`, `second`: File timestamp
 
 ##### `upload_file(local_path, driver='A', remote_path=None, pause_controller=False) -> bool`
+
 Upload a file to the controller. Automatically converts BMP, GIF, or PNG images to XMP format.
 
 **Parameters:**
+
 - `local_path` (str): Path to local file
 - `driver` (str): Destination driver ('A', 'B', or 'C')
 - `remote_path` (str): Remote filename (defaults to local filename)
@@ -141,9 +153,11 @@ Upload a file to the controller. Automatically converts BMP, GIF, or PNG images 
 **Returns:** True if upload successful
 
 ##### `download_file(remote_path, local_path=None, driver='A', force_raw=False) -> bool`
+
 Download a file from the controller. Automatically converts XMP files to BMP/GIF/PNG if local_path has those extensions.
 
 **Parameters:**
+
 - `remote_path` (str): Remote filename on controller (max 16 chars)
 - `local_path` (str): Local destination path (defaults to remote filename)
 - `driver` (str): Source driver ('A', 'B', or 'C')
@@ -152,9 +166,11 @@ Download a file from the controller. Automatically converts XMP files to BMP/GIF
 **Returns:** True if download successful
 
 ##### `download_directory(remote_dir, local_dir, driver='A', recursive=False) -> int`
+
 Download all files from a directory on the controller.
 
 **Parameters:**
+
 - `remote_dir` (str): Remote directory name (max 3 chars, empty for root)
 - `local_dir` (str): Local destination directory
 - `driver` (str): Source driver ('A', 'B', or 'C')
@@ -163,34 +179,42 @@ Download all files from a directory on the controller.
 **Returns:** Number of files downloaded
 
 ##### `get_free_space(driver='A') -> int`
+
 Get free space on controller disk.
 
 **Parameters:**
+
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 
 **Returns:** Free space in bytes
 
 ### Control Command Methods
 
-##### `delete_file(remote_path, driver='A') -> bool`
+#### `delete_file(remote_path, driver='A') -> bool`
+
 Delete a file from the controller.
 
 **Parameters:**
+
 - `remote_path` (str): Remote file path to delete (max 16 chars)
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 
 **Returns:** True if deletion successful
 
 ##### `pause() -> None`
+
 Pause display playback.
 
 ##### `play() -> None`
+
 Resume display playback.
 
 ##### `set_power_mode(mode) -> None`
+
 Set LED screen power mode.
 
 **Parameters:**
+
 - `mode` (int): Power mode
   - `0`: Off
   - `1`: On
@@ -199,35 +223,43 @@ Set LED screen power mode.
 **Raises:** ValueError if mode is not 0, 1, or 2
 
 ##### `format_disk(driver) -> None`
+
 Format a storage driver.
 
 **Parameters:**
+
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 
 **Warning:** This will ERASE ALL DATA on the driver!
 
 ##### `create_subdirectory(name, driver='A') -> None`
+
 Create a subdirectory on the controller at the root level.
 
 **Parameters:**
+
 - `name` (str): Subdirectory name (max 3 characters, e.g., 'P00', 'FON')
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 
 **Note:** Subdirectories can only be created at the root level. Nested subdirectories are not supported.
 
 ##### `delete_subdirectory(name, driver='A') -> None`
+
 Delete a subdirectory from the controller at the root level.
 
 **Parameters:**
+
 - `name` (str): Subdirectory name (max 3 characters)
 - `driver` (str): Driver letter ('A', 'B', or 'C')
 
 **Note:** Directory must be empty before it can be deleted. Only root-level subdirectories can be deleted.
 
 ##### `set_calendar_clock(year, month, day, hour=0, minute=0, second=0) -> None`
+
 Set controller's calendar and clock.
 
 **Parameters:**
+
 - `year` (int): Year (1980-2099)
 - `month` (int): Month (1-12)
 - `day` (int): Day (1-31)
@@ -236,9 +268,11 @@ Set controller's calendar and clock.
 - `second` (int): Second (0-59), default 0
 
 ##### `set_on_off_time(start_hour, start_minute, end_hour, end_minute, days_mask=0x7F) -> None`
+
 Set display on/off time schedule.
 
 **Parameters:**
+
 - `start_hour` (int): Start hour (0-23)
 - `start_minute` (int): Start minute (0-59)
 - `end_hour` (int): End hour (0-23)
@@ -246,30 +280,38 @@ Set display on/off time schedule.
 - `days_mask` (int): Days bitmask (bit 0=Sunday, ..., bit 6=Saturday). Default 0x7F means all days
 
 ##### `real_time_display(text) -> None`
+
 Send text for real-time display on LED screen.
 
 **Parameters:**
+
 - `text` (str): Text to display (max 256 characters, ASCII only)
 
 ##### `restart_schedule() -> None`
+
 Restart the schedule list playback.
 
 ##### `reset_controller() -> None`
+
 Reset (reboot) the controller.
 
 **Warning:** This will reboot the controller!
 
 ##### `release_network() -> None`
+
 Release network communication to allow other clients to connect.
 
-**Note:** Should be called after completing a communication process. The controller automatically releases network on `close()`, so this is typically only needed for long-running sessions.
+**Note:** Should be called after completing a communication process. The controller automatically releases network on `close()`, so this 
+is typically only needed for long-running sessions.
 
 ### Image Conversion Functions
 
-##### `convert_to_xmp(image_path, output_path=None, xmp_type=1) -> tuple`
+#### `convert_to_xmp(image_path, output_path=None, xmp_type=1) -> tuple`
+
 Convert a monochrome or grayscale image (BMP, GIF, PNG) to XMP format.
 
 **Parameters:**
+
 - `image_path` (str): Path to source image file
 - `output_path` (str, optional): Destination path for XMP file. If None, creates a temporary file.
 - `xmp_type` (int, optional): XMP format type. Default is 1.
@@ -279,9 +321,11 @@ Convert a monochrome or grayscale image (BMP, GIF, PNG) to XMP format.
 **Returns:** Tuple of (output_path, is_temporary)
 
 ##### `needs_conversion(filename) -> bool`
+
 Check if a file needs conversion before upload.
 
 **Parameters:**
+
 - `filename` (str): Path or filename to check
 
 **Returns:** True if file should be converted to XMP before upload
@@ -477,6 +521,7 @@ python tests/interactive_test.py
 ```
 
 The script provides a menu-driven interface to:
+
 1. Setup connection parameters
 2. Test connection to controller
 3. Check controller status
@@ -486,9 +531,10 @@ The script provides a menu-driven interface to:
 7. Download entire directories
 8. Get disk free space
 9. Test image conversion offline
-0. Exit
+10. Exit
 
 The interactive test script is useful for:
+
 - Testing connection to a new controller
 - Exploring controller file system
 - Testing image conversion without uploading
@@ -499,6 +545,7 @@ The interactive test script is useful for:
 ### UDP Communication
 
 The SCL protocol uses UDP for communication:
+
 - **Packet Structure**: Leading code (4B) + Packet number (4B) + Length (2B) + Reserved (2B) + Basic data
 - **Little-Endian**: All multi-byte values use little-endian encoding
 - **Response Port**: Controller responds on the same port as the request
@@ -511,10 +558,12 @@ The SCL protocol uses UDP for communication:
 XMP is a proprietary bitmap format used by LyTech LED controllers. The library automatically converts BMP, GIF, and PNG images to XMP format during upload.
 
 **Supported Formats:**
+
 - **Type 1 (4-color grayscale)** - Default, best compatibility
 - **Type 2 (monochrome)** - Smaller file size
 
 **Basic Usage:**
+
 ```python
 # Default Type 1 conversion
 controller.upload_file('image.png', driver='A')
@@ -562,6 +611,7 @@ The library implements these protocol commands:
 **Root Level Only**: Subdirectories can only be created at the root level of each driver. Nested subdirectories (subdirectories within subdirectories) are NOT supported by the controller hardware.
 
 ```
+
 Supported Structure:
 Driver A:/
   ├── P00/         ✓ Root-level subdirectory
@@ -576,11 +626,13 @@ Driver A:/
 ```
 
 **File Path Examples**:
+
 - `file.txt` - ✓ Root level
 - `P00/file.txt` - ✓ One level deep (subdirectory)
 - `P00/SUB/file.txt` - ✗ Two levels deep (NOT SUPPORTED)
 
 **Subdirectory Operations**:
+
 - `create_subdirectory()` - Creates root-level subdirectories only
 - `delete_subdirectory()` - Deletes root-level subdirectories only (must be empty)
 - Both operations are limited to 3-character names
@@ -600,6 +652,7 @@ This is a hardware/firmware limitation of the LyTech LED controller, not a limit
 **Problem**: Timeout errors or connection failures
 
 **Solutions**:
+
 1. Verify controller IP address is correct
 2. Check network connectivity: `ping <controller_ip>`
 3. Ensure controller is powered on and network cable connected
@@ -612,6 +665,7 @@ This is a hardware/firmware limitation of the LyTech LED controller, not a limit
 **Problem**: Protocol errors or invalid responses
 
 **Solutions**:
+
 1. Verify correct protocol version: `scl2008=True` for SCL2008, `scl2008=False` for SuperComm
 2. Check controller firmware compatibility
 3. Ensure no other software is communicating with the controller simultaneously
@@ -622,6 +676,7 @@ This is a hardware/firmware limitation of the LyTech LED controller, not a limit
 **Problem**: File upload fails or times out
 
 **Solutions**:
+
 1. Check file size (must be < 2MB due to controller buffer limitation)
 2. Verify sufficient free space: `controller.get_free_space(driver)`
 3. Try using pause mode: `upload_file(..., pause_controller=True)`
@@ -633,6 +688,7 @@ This is a hardware/firmware limitation of the LyTech LED controller, not a limit
 **Problem**: Image conversion fails
 
 **Solutions**:
+
 1. Ensure Pillow is installed: `pip install Pillow`
 2. Verify image file is valid and not corrupted
 3. Check that image is in supported format (BMP, GIF, or PNG)
@@ -644,6 +700,7 @@ This is a hardware/firmware limitation of the LyTech LED controller, not a limit
 ### Project Structure
 
 ```
+
 scl_protocol/
 ├── scl_protocol/
 │   ├── __init__.py         # Public API exports
@@ -658,6 +715,7 @@ scl_protocol/
 ├── setup.py                # Legacy package configuration (optional)
 ├── requirements.txt        # Dependencies
 └── README.md              # This file
+
 ```
 
 ### Testing
@@ -697,6 +755,7 @@ Based on the SCL/SuperComm protocol specification by LyTech for LED controller c
 ## Related Documentation
 
 For detailed protocol information, refer to:
+
 - SCL Protocol specification document
 - SCL2008 Protocol packet examples
 - LyTech controller programming manual
@@ -704,6 +763,7 @@ For detailed protocol information, refer to:
 ## Version History
 
 ### 0.9.0 (2025-11-25)
+
 - Initial release
 - Complete SCL2008 and SuperComm protocol implementation
 - File upload/download with automatic image conversion

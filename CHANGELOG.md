@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2024-12-08
+
+### Fixed
+- **Critical**: Packet counter synchronization issues in `send_command()` method
+  - Packet not rebuilt on retry - packet number was updated but packet still contained old number
+  - Insufficient socket buffer flushing before resync - stale packets could cause cascading failures
+  - Improved resync logic to properly align with controller's packet counter
+  - Added socket buffer flush before retry to prevent stale packet issues
+
+### Changed
+- Replaced `print()` with proper `logging` module for packet counter warnings
+- Added debug-level logging for packet counter state transitions
+- Enhanced error messages with command code and retry attempt information
+- Moved packet building inside retry loop to ensure fresh packet on each attempt
+
+### Added
+- Comprehensive documentation of packet counter fix in PACKET_COUNTER_FIX.md
+- Debug logging showing packet number transitions (enable with `logging.DEBUG`)
+
 ## [0.2.0] - 2024-11-27
 
 ### Added
