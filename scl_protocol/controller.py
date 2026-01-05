@@ -1284,18 +1284,12 @@ class SCLController:
                 f"Ensure the directory is empty and exists on driver {driver}."
             )
     
-    def set_calendar_clock(self, year: int, month: int, day: int,
-                          hour: int = 0, minute: int = 0, second: int = 0) -> None:
+    def set_calendar_clock(self, dt: 'datetime.datetime') -> None:
         """
         Set controller's calendar and clock.
         
         Args:
-            year: Year (2000-2099)
-            month: Month (1-12)
-            day: Day (1-31)
-            hour: Hour (0-23), default 0
-            minute: Minute (0-59), default 0
-            second: Second (0-59), default 0
+            dt: datetime object with the date and time to set
         
         Raises:
             SCLControllerError: If setting fails
@@ -1304,28 +1298,43 @@ class SCLController:
         from .constants import CMD_SET_CALENDAR_CLOCK
         import datetime
         
-        # Validate year range
+        # Extract components
+        year = dt.year
+        month = dt.month
+        day = dt.day
+        hour = dt.hour
+        minute = dt.minute
+        second = dt.second
+        
+        # Validate year range (CD format supports 2000-2099)
         if not (2000 <= year <= 2099):
             raise ValueError(f"Year must be between 2000 and 2099, got {year}")
         
         # Calculate weekday (0=Sunday, 6=Saturday)
-        # Python's weekday() returns 0=Monday, so we need to convert
-        dt = datetime.date(year, month, day)
-        weekday = (dt.weekday() + 1) % 7  # Convert Monday=0 to Sunday=0
+        weekday = (dt.weekday() + 1) % 7  # Convert Python's Monday=0 to Sunday=0
         
-        # Pack date/time in CD format: 7 bytes
-        # year (0x00-0x99 for 2000-2099), month (0x01-0x12), date (0x01-0x31),
-        # week (0x00-0x06, 0x00=Sunday), hour (0x00-0x23), minute (0x00-0x59), second (0x00-0x59)
+        # Year offset from 2000
+        year_offset = year - 2000
+        
+        def to_bcd(val):
+            """Convert decimal to BCD."""
+            return ((val // 10) << 4) | (val % 10)
+        
+        # Pack date/time: 7 bytes
+        # Encode: year(BCD), month, day, week, hour(BCD), minute(BCD), second(BCD)
         param3 = struct.pack('BBBBBBB', 
-                            year - 2000,  # Year offset from 2000
+                            to_bcd(year_offset),
                             month,
                             day,
                             weekday,
-                            hour,
-                            minute,
-                            second)
+                            to_bcd(hour),
+                            to_bcd(minute),
+                            to_bcd(second))
         
-        self.send_command(CMD_SET_CALENDAR_CLOCK, 0, len(param3), param3)
+        logger.info(f"Setting calendar/clock: {year}-{month:02d}-{day:02d} "
+                    f"{hour:02d}:{minute:02d}:{second:02d}")
+        
+        self.send_command(CMD_SET_CALENDAR_CLOCK, 3, 2, param3)
     
     def set_on_off_time(self, start_hour: int, start_minute: int,
                        end_hour: int, end_minute: int, days_mask: int = 0x7F) -> None:
