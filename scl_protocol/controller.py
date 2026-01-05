@@ -1321,11 +1321,11 @@ class SCLController:
             return ((val // 10) << 4) | (val % 10)
         
         # Pack date/time: 7 bytes
-        # Encode: year(BCD), month, day, week, hour(BCD), minute(BCD), second(BCD)
+        # Encode: year(BCD), month(BCD), day(BCD), week, hour(BCD), minute(BCD), second(BCD)
         param3 = struct.pack('BBBBBBB', 
                             to_bcd(year_offset),
-                            month,
-                            day,
+                            to_bcd(month),
+                            to_bcd(day),
                             weekday,
                             to_bcd(hour),
                             to_bcd(minute),
