@@ -1293,7 +1293,11 @@ class SCLController:
         
         Raises:
             SCLControllerError: If setting fails
-            ValueError: If year is not in range 2000-2099
+            ValueError: If year is not in range 2000-2030
+        
+        Note:
+            Due to a controller limitation, only years 2000-2030 are supported.
+            Years 2031 and beyond fail to set correctly on the hardware.
         """
         from .constants import CMD_SET_CALENDAR_CLOCK
         import datetime
@@ -1306,9 +1310,9 @@ class SCLController:
         minute = dt.minute
         second = dt.second
         
-        # Validate year range (CD format supports 2000-2099)
-        if not (2000 <= year <= 2099):
-            raise ValueError(f"Year must be between 2000 and 2099, got {year}")
+        # Validate year range (controller limitation)
+        if not (2000 <= year <= 2030):
+            raise ValueError(f"Year must be between 2000 and 2030, got {year}")
         
         # Calculate weekday (0=Sunday, 6=Saturday)
         weekday = (dt.weekday() + 1) % 7  # Convert Python's Monday=0 to Sunday=0
