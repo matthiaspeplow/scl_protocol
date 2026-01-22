@@ -516,21 +516,25 @@ class SCLController:
             # WORD NotUsed4[8] (16 bytes, skip)
             offset += 16
             
-            # RTC fields in CD format: 7 bytes  
+            # RTC fields in BCD format: 7 bytes  
             # The order in the status response is: second, minute, hour, day, month, week, year
-            rtc_second = param3[offset]
+            def from_bcd(val):
+                """Convert BCD to decimal."""
+                return ((val >> 4) * 10) + (val & 0x0F)
+            
+            rtc_second = from_bcd(param3[offset])
             offset += 1
-            rtc_minute = param3[offset]
+            rtc_minute = from_bcd(param3[offset])
             offset += 1
-            rtc_hour = param3[offset]
+            rtc_hour = from_bcd(param3[offset])
             offset += 1
-            rtc_day = param3[offset]
+            rtc_day = from_bcd(param3[offset])
             offset += 1
-            rtc_month = param3[offset]
+            rtc_month = from_bcd(param3[offset])
             offset += 1
-            rtc_week = param3[offset]
+            rtc_week = from_bcd(param3[offset])
             offset += 1
-            rtc_year = param3[offset]
+            rtc_year = from_bcd(param3[offset])
             offset += 1
             
             # Year is stored as offset from 2000 (0-99 for 2000-2099)
