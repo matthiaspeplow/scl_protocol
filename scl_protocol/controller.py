@@ -516,26 +516,47 @@ class SCLController:
             # WORD NotUsed4[8] (16 bytes, skip)
             offset += 16
             
-            # RTC fields in BCD format: 7 bytes  
+            # RTC fields: 7 bytes  
             # The order in the status response is: second, minute, hour, day, month, week, year
             def from_bcd(val):
                 """Convert BCD to decimal."""
                 return ((val >> 4) * 10) + (val & 0x0F)
             
-            rtc_second = from_bcd(param3[offset])
+            # Log raw RTC bytes for debugging
+            rtc_raw = param3[offset:offset+7]
+            logger.debug(f"RTC raw bytes at offset {offset}: {rtc_raw.hex()} = {list(rtc_raw)}")
+            
+            rtc_second_raw = param3[offset]
             offset += 1
-            rtc_minute = from_bcd(param3[offset])
+            rtc_minute_raw = param3[offset]
             offset += 1
-            rtc_hour = from_bcd(param3[offset])
+            rtc_hour_raw = param3[offset]
             offset += 1
-            rtc_day = from_bcd(param3[offset])
+            rtc_day_raw = param3[offset]
             offset += 1
-            rtc_month = from_bcd(param3[offset])
+            rtc_month_raw = param3[offset]
             offset += 1
-            rtc_week = from_bcd(param3[offset])
+            rtc_week_raw = param3[offset]
             offset += 1
-            rtc_year = from_bcd(param3[offset])
+            rtc_year_raw = param3[offset]
             offset += 1
+            
+            logger.debug(f"RTC raw values: sec={rtc_second_raw}, min={rtc_minute_raw}, "
+                        f"hour={rtc_hour_raw}, day={rtc_day_raw}, month={rtc_month_raw}, "
+                        f"week={rtc_week_raw}, year={rtc_year_raw}")
+            
+            # Try BCD decode
+            rtc_second = from_bcd(rtc_second_raw)
+            rtc_minute = from_bcd(rtc_minute_raw)
+            rtc_hour = from_bcd(rtc_hour_raw)
+            rtc_day = from_bcd(rtc_day_raw)
+            rtc_month = from_bcd(rtc_month_raw)
+            rtc_week = from_bcd(rtc_week_raw)
+            rtc_year = from_bcd(rtc_year_raw)
+            
+            logger.debug(f"RTC BCD decoded: sec={rtc_second}, min={rtc_minute}, "
+                        f"hour={rtc_hour}, day={rtc_day}, month={rtc_month}, "
+                        f"week={rtc_week}, year={rtc_year}")
             
             # Year is stored as offset from 2000 (0-99 for 2000-2099)
             rtc_year += 2000
