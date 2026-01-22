@@ -516,45 +516,32 @@ class SCLController:
             # WORD NotUsed4[8] (16 bytes, skip)
             offset += 16
             
-            # RTC fields: 7 bytes  
-            # The order in the status response is: second, minute, hour, day, month, week, year
-            def from_bcd(val):
-                """Convert BCD to decimal."""
-                return ((val >> 4) * 10) + (val & 0x0F)
+            # RTC fields are WORDs (2 bytes each), not single bytes
+            # Based on debug output: data is [sec, 0, hour, 0, month, 0, year] pattern
+            # which suggests WORDs with only low byte used
+            # Re-examining: the structure likely has more fields as WORDs
             
-            # Log raw RTC bytes for debugging
-            rtc_raw = param3[offset:offset+7]
+            # Log raw RTC bytes for debugging (14 bytes = 7 WORDs)
+            rtc_raw = param3[offset:offset+14]
             logger.debug(f"RTC raw bytes at offset {offset}: {rtc_raw.hex()} = {list(rtc_raw)}")
             
-            rtc_second_raw = param3[offset]
-            offset += 1
-            rtc_minute_raw = param3[offset]
-            offset += 1
-            rtc_hour_raw = param3[offset]
-            offset += 1
-            rtc_day_raw = param3[offset]
-            offset += 1
-            rtc_month_raw = param3[offset]
-            offset += 1
-            rtc_week_raw = param3[offset]
-            offset += 1
-            rtc_year_raw = param3[offset]
-            offset += 1
+            # Parse as 7 WORDs: second, minute, hour, day, month, weekday, year
+            rtc_second = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_minute = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_hour = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_day = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_month = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_week = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
+            rtc_year = struct.unpack('<H', param3[offset:offset+2])[0]
+            offset += 2
             
-            logger.debug(f"RTC raw values: sec={rtc_second_raw}, min={rtc_minute_raw}, "
-                        f"hour={rtc_hour_raw}, day={rtc_day_raw}, month={rtc_month_raw}, "
-                        f"week={rtc_week_raw}, year={rtc_year_raw}")
-            
-            # Try BCD decode
-            rtc_second = from_bcd(rtc_second_raw)
-            rtc_minute = from_bcd(rtc_minute_raw)
-            rtc_hour = from_bcd(rtc_hour_raw)
-            rtc_day = from_bcd(rtc_day_raw)
-            rtc_month = from_bcd(rtc_month_raw)
-            rtc_week = from_bcd(rtc_week_raw)
-            rtc_year = from_bcd(rtc_year_raw)
-            
-            logger.debug(f"RTC BCD decoded: sec={rtc_second}, min={rtc_minute}, "
+            logger.debug(f"RTC WORD values: sec={rtc_second}, min={rtc_minute}, "
                         f"hour={rtc_hour}, day={rtc_day}, month={rtc_month}, "
                         f"week={rtc_week}, year={rtc_year}")
             
