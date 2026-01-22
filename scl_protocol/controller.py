@@ -1330,7 +1330,7 @@ class SCLController:
                             to_bcd(year_offset),
                             to_bcd(month),
                             to_bcd(day),
-                            weekday,
+                            to_bcd(weekday),
                             to_bcd(hour),
                             to_bcd(minute),
                             to_bcd(second))
